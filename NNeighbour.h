@@ -164,7 +164,7 @@ class NNeighbour {
   
     void buildWSR() {
         pairs.clear();
-        wsr(root);
+        wellSeparatedRegion(root);
     }
   
   
@@ -236,7 +236,7 @@ class NNeighbour {
         return PointCoords[pntidx].nn;
     }
     
-    void compute_wsr_nn() {
+    void compute_wellSeparatedRegion_nn() {
         int pointCoordSize = PointCoords.size();
         #ifdef CILK
             cilk_for(int pntidx=0; pntidx<pointCoordSize; pntidx++){ 
@@ -435,34 +435,34 @@ private:
     }
     
     
-    void wsr(TreeNode * node) {
+    void wellSeparatedRegion(TreeNode * node) {
         if (node->left == NULL) {
             // is leaf
             return;
         } else {
             #ifdef CILK
-                cilk_spawn wsr(node->left);
-                wsr(node->right);
+                cilk_spawn wellSeparatedRegion(node->left);
+                wellSeparatedRegion(node->right);
                 cilk_sync;
             #else
-                wsr(node->left);
-                wsr(node->right);
+                wellSeparatedRegion(node->left);
+                wellSeparatedRegion(node->right);
             #endif
-            wsrPair(node->left, node->right);
+            wellSeparatedRegionPair(node->left, node->right);
         }
     }
     
-    void wsrPair(TreeNode * t1, TreeNode * t2) {
+    void wellSeparatedRegionPair(TreeNode * t1, TreeNode * t2) {
         if (wellSeparated(t1->boundingBox, t2->boundingBox)) {
             if (t1->left == NULL) t1->add_interaction(t2);
             if (t2->left == NULL) t2->add_interaction(t1);
             //pairs.push_back(std::pair<PointCoord,PointCoord> (t1.boundingBox.center, t2.boundingBox.center));
         } else if ((t1->lengthMax) > (t2->lengthMax)) {
-            wsrPair(t1->left, t2);
-            wsrPair(t1->right, t2);
+            wellSeparatedRegionPair(t1->left, t2);
+            wellSeparatedRegionPair(t1->right, t2);
         } else {
-            wsrPair(t1, t2->left);
-            wsrPair(t1, t2->right);
+            wellSeparatedRegionPair(t1, t2->left);
+            wellSeparatedRegionPair(t1, t2->right);
         }
     }
     

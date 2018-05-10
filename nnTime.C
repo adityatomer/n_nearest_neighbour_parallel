@@ -83,7 +83,7 @@ bool checkNN(vector<double3> & PointCoordset) {
 
 void computeNN() {
     nneighbourSet->recompute();
-    nneighbourSet->compute_wsr_nn();
+    nneighbourSet->compute_wellSeparatedRegion_nn();
 }
 
 void createNNeighbourInstance(size_t numOfPoints) {
