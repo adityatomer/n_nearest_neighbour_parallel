@@ -33,7 +33,11 @@ struct PointCoord {
     double square(PointCoord &p) {
         assert(DIMENSIONS == 3);
         return _SQUARE(p.coord[0]-coord[0])+_SQUARE(p.coord[1]-coord[1])+_SQUARE(p.coord[2]-coord[2]);
-    } 
+    }
+
+    void print(){
+        cout<<"("<<coord[0]<<", "<<coord[1]<<", "<<coord[2]<<") ";
+    }
 };
 
 struct Box {
@@ -61,6 +65,15 @@ struct Box {
         r = 0;
         center = PointCoord(pt.coord[0], pt.coord[1], pt.coord[2]);
         for(int k=0; k<BOXEDGES; k++) edges[k] = center;
+    }
+
+    void print(){
+        cout<<"{";
+        for(int i=0;i<BOXEDGES;++i){
+            edges[i].print();
+            cout<<",";
+        }
+        cout<<"}";
     }
 };
 
@@ -97,6 +110,13 @@ class TreeNode {
                 interacts = new std::list<TreeNode *>();
             };
             interacts->push_back(nd);
+        }
+
+        void print(){
+            cout<<"[ ";
+            cout<<"self: "<<this<<" parent: "<<parent<<" left: "<<left<<" right: "<<right<<" depth: "<<depth<<" lengthMax: "<<lengthMax<<" PointCoord_idx: "<<PointCoord_idx<<" BOX: ";
+            boundingBox.print();
+            cout<<" ]";
         }
 };
 
@@ -165,6 +185,9 @@ class NNeighbour {
     void buildWSR() {
         pairs.clear();
         wellSeparatedRegion(root);
+        // inorder(root);
+        // cout<<"\n";
+        // preorder(root);
     }
   
   
@@ -190,7 +213,7 @@ class NNeighbour {
         }
 
         inorder(root->left);
-        cout<<root<<" "<<root->PointCoord_idx<< "\n";
+        cout<<root->PointCoord_idx<<" ";
         inorder(root->right);
     }
 
@@ -198,7 +221,7 @@ class NNeighbour {
         if(root==NULL){
             return;
         }
-        cout<<root<<" "<<root->PointCoord_idx<< "\n";
+        cout<<root->PointCoord_idx<<" ";
         inorder(root->left);
         inorder(root->right);
     }
@@ -434,10 +457,8 @@ private:
         
     }
     
-    
     void wellSeparatedRegion(TreeNode * node) {
         if (node->left == NULL) {
-            // is leaf
             return;
         } else {
             #ifdef CILK
@@ -448,15 +469,21 @@ private:
                 wellSeparatedRegion(node->left);
                 wellSeparatedRegion(node->right);
             #endif
+            // cout<<"nodeIdx: "<<node->PointCoord_idx<<" leftIdx: "<<node->left->PointCoord_idx<<" rightIdx: "<<node->right->PointCoord_idx<<endl;
             wellSeparatedRegionPair(node->left, node->right);
         }
     }
     
     void wellSeparatedRegionPair(TreeNode * t1, TreeNode * t2) {
         if (wellSeparated(t1->boundingBox, t2->boundingBox)) {
-            if (t1->left == NULL) t1->add_interaction(t2);
-            if (t2->left == NULL) t2->add_interaction(t1);
-            //pairs.push_back(std::pair<PointCoord,PointCoord> (t1.boundingBox.center, t2.boundingBox.center));
+            if (t1->left == NULL){
+                t1->add_interaction(t2);
+                // cout<<"("<<t1->PointCoord_idx<<", "<<t2->PointCoord_idx<<")\n";
+                // cout<<"t1: ";// t1->print();// cout<<"\nt2: ";// t2->print();// cout<<"\n\n";
+            }
+            if (t2->left == NULL){
+                t2->add_interaction(t1);
+            }
         } else if ((t1->lengthMax) > (t2->lengthMax)) {
             wellSeparatedRegionPair(t1->left, t2);
             wellSeparatedRegionPair(t1->right, t2);
