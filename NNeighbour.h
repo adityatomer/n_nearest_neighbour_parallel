@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
+#include <cilk/cilk.h>
+#define CILK 1
 #define DIMENSIONS 3
 #define BOXEDGES 8
 #define MAXPARALLELDEPTH 5
@@ -423,7 +425,7 @@ private:
             #ifdef CILK
                 TreeNode * leftn;
                 TreeNode * rightn;
-                if (level < MAXPARALLELDEPTH) {
+                if (level > MAXPARALLELDEPTH) {
                         leftn = cilk_spawn kdTree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
                         rightn =     kdTree(PointCoordset_part(p2start, c-p2start), node, level+1);
                         cilk_sync;

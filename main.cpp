@@ -2,8 +2,11 @@
 #include <algorithm>
 #include "gettime.h" 
 // #include "utils.h"
-// #include "cilk.h" 
+#include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include<chrono>
 using namespace std;
 #include "PointGenerator.h"
 #include "NNeighbour.h"
@@ -184,9 +187,17 @@ int main(int argc, char* argv[]) {
     int workers=1;
     commandLineArgs(argc,argv,oFile, rounds, numPoints, testType,workers);
     #ifdef CILK
-        __cilkrts_set_param("nworkers", workers);  
+       __cilkrts_set_param("nworkers", argv[2]);  
     #endif
-        
-    computeNearestNeighbour(std::string(testType), numPoints, oFile, rounds);
+    __int64 now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();	
+    
+
+    computeNearestNeighbour("random", atoi(argv[1]), "./output.out", 1);    
+    
+    __int64 now1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    float timeTaken=float (now1- now);
+    std::cout<<"time taken: "<<timeTaken/1000<<"\n";
+
+    //computeNearestNeighbour(std::string(testType), numPoints, oFile, rounds);
     return 1;
 }
