@@ -12,14 +12,14 @@ using namespace std;
 #include <vector>
 #include<fstream>
 #include<assert.h>
-#define SQR(x) ((x)*(x))
+#define SQUARE(x) ((x)*(x))
 
 
 NNeighbour * nneighbourSet = NULL;
 int _nPointCoords;
 
 double distsqr(double3 a, double3 b) {
-    return (SQR(a[0]-b[0])+SQR(a[1]-b[1])+SQR(a[2]-b[2]));
+    return (SQUARE(a[0]-b[0])+SQUARE(a[1]-b[1])+SQUARE(a[2]-b[2]));
 }
 
 int nearest_neighbor_naive(std::vector<double3> & PointCoords, int orig) {
@@ -144,9 +144,9 @@ void computeNearestNeighbour(std::string testType, size_t numPoints, std::string
      cout << endl;    
 }
 
-void commandLineArgs(int argc,char *argv[], std::string &oFile, int &rounds, size_t &numPoints,std::string &testType){
+void commandLineArgs(int argc,char *argv[], std::string &oFile, int &rounds, size_t &numPoints,std::string &testType, int &workers){
     int c=0;
-    while ((c = getopt (argc, argv, "o:r::n::t:")) != -1)
+    while ((c = getopt (argc, argv, "w::o:r::n::t:")) != -1)
     switch (c)
     {   
         case 'o':
@@ -160,6 +160,9 @@ void commandLineArgs(int argc,char *argv[], std::string &oFile, int &rounds, siz
             break;
         case 't':
             testType = optarg;
+            break;
+        case 'w':
+            workers = atoi(optarg);
             break;
         case '?':
             if (optopt == 'c')
@@ -178,7 +181,12 @@ int main(int argc, char* argv[]) {
     std::string oFile;
     int rounds = 1;
     size_t numPoints = 10;
-    commandLineArgs(argc,argv,oFile, rounds, numPoints, testType);
+    int workers=1;
+    commandLineArgs(argc,argv,oFile, rounds, numPoints, testType,workers);
+    #ifdef CILK
+        __cilkrts_set_param("nworkers", workers);  
+    #endif
+        
     computeNearestNeighbour(std::string(testType), numPoints, oFile, rounds);
     return 1;
 }
