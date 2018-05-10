@@ -18,11 +18,11 @@ using namespace std;
 NNeighbour * nneighbourSet = NULL;
 int _nPointCoords;
 
-double distsqr(double3 a, double3 b) {
+double distsqr(double3Coord a, double3Coord b) {
     return (SQUARE(a[0]-b[0])+SQUARE(a[1]-b[1])+SQUARE(a[2]-b[2]));
 }
 
-int nearest_neighbor_naive(std::vector<double3> & PointCoords, int orig) {
+int nearest_neighbor_naive(std::vector<double3Coord> & PointCoords, int orig) {
     double minsqr=1e30; 
     int minidx=-1;
     for(int i=0; i<PointCoords.size(); i++) {
@@ -38,17 +38,17 @@ int nearest_neighbor_naive(std::vector<double3> & PointCoords, int orig) {
     return minidx;
 }
 
-void addPoint(int i, double3 p) {
+void addPoint(int i, double3Coord p) {
     nneighbourSet->addPoint(i, p[0],p[1],p[2]);
 }
 
 // Used for correctness check.
-double3 getNearestPoint(int PointCoordidx) {
+double3Coord getNearestPoint(int PointCoordidx) {
     PointCoord p = nneighbourSet->getPoints()[nneighbourSet->getPoints()[PointCoordidx].nn];
-    return double3(p.coord[0], p.coord[1], p.coord[2]);
+    return double3Coord(p.coord[0], p.coord[1], p.coord[2]);
 }
 
-bool checkNN(vector<double3> & PointCoordset) {
+bool checkNN(vector<double3Coord> & PointCoordset) {
     // Use max 0.5 secs for checking or max 1000 PointCoords
     int maxPointCoords = 1000;
     double maxtime = 0.5;
@@ -58,8 +58,8 @@ bool checkNN(vector<double3> & PointCoordset) {
     for(int i=0; i<maxPointCoords; i++) {
         if (ctimer.total() < maxtime || i < 50) {
             int PointCoordcheck = random()%PointCoordset.size();
-            double3 nearestPointCoord = PointCoordset[nearest_neighbor_naive(PointCoordset, PointCoordcheck)];
-            double3 alg_nn = getNearestPoint(PointCoordcheck);
+            double3Coord nearestPointCoord = PointCoordset[nearest_neighbor_naive(PointCoordset, PointCoordcheck)];
+            double3Coord alg_nn = getNearestPoint(PointCoordcheck);
             // Two PointCoords may be same distance, so it is not enough to check correct PointCoord index
             if (distsqr(PointCoordset[PointCoordcheck], alg_nn) == distsqr(PointCoordset[PointCoordcheck], nearestPointCoord)) {
                 // ok
@@ -94,13 +94,13 @@ void createNNeighbourInstance(size_t numOfPoints) {
 }
 
 
-void writeToFile(std::string path,vector<double3> & PointCoordset){
+void writeToFile(std::string path,vector<double3Coord> & PointCoordset){
     ofstream myfile(path);
     for(int i=0;i<PointCoordset.size();++i){
         int PointCoordcheck=i;
-        double3 p                = PointCoordset[i];
+        double3Coord p                = PointCoordset[i];
         PointCoord p_neighbourPC = nneighbourSet->getPoints()[nneighbourSet->getPoints()[PointCoordcheck].nn];
-        double3 p_neighbour= double3(p_neighbourPC.coord[0], p_neighbourPC.coord[1], p_neighbourPC.coord[2]);
+        double3Coord p_neighbour= double3Coord(p_neighbourPC.coord[0], p_neighbourPC.coord[1], p_neighbourPC.coord[2]);
         if (myfile.is_open()){
             myfile <<"("<<p.coord[0]<<", "<<p.coord[1]<<", "<<p.coord[2]<<")";
             myfile <<"  =>  ";
@@ -113,7 +113,7 @@ void writeToFile(std::string path,vector<double3> & PointCoordset){
 }
  
 void computeNearestNeighbour(std::string testType, size_t numPoints, std::string outFile, int rounds) {
-    vector<double3> PointCoordset;
+    vector<double3Coord> PointCoordset;
   
     srand(1);
     if (testType == "grid") {
