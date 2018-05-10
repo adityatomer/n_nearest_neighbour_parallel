@@ -1,5 +1,3 @@
-// -*- C++ -*-
-
 #ifndef _BENCH_GETTIME_INCLUDED
 #define _BENCH_GETTIME_INCLUDED
 

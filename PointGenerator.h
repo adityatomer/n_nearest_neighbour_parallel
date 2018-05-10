@@ -1,13 +1,3 @@
-/*
- *    PointGenerator.h
- *    CallahanKosaraju
- *
- *    Created by Aapo Kyrola on 11/11/10.
- *    Copyright 2010 Carnegie Mellon University. All rights reserved.
- *
- */
-
-
 #ifndef _DEF_POINTGEN_
 #define _DEF_POINTGEN_
 

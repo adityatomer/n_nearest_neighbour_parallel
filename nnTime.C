@@ -3,19 +3,17 @@
 #include "gettime.h" 
 // #include "utils.h"
 // #include "cilk.h" 
-#include <stdlib.h>
 #include <sys/time.h>
-#include <iomanip>
-#include <iostream>
-#include "parseCommandLine.h"
+using namespace std;
 #include "PointGenerator.h"
 #include "NNeighbour.h"
+#include <ctype.h>
+#include <stdio.h>
 #include <vector>
-#include "NNeighbour.h"
+#include<fstream>
 #include<assert.h>
-#define CILK 0
 #define SQR(x) ((x)*(x))
-using namespace std;
+
 
 NNeighbour * nneighbourSet = NULL;
 int _nPointCoords;
@@ -94,8 +92,27 @@ void createNNeighbourInstance(size_t numOfPoints) {
     nneighbourSet->reserve(numOfPoints);
     _nPointCoords = numOfPoints;
 }
+
+
+void writeToFile(std::string path,vector<double3> & PointCoordset){
+    ofstream myfile(path);
+    for(int i=0;i<PointCoordset.size();++i){
+        int PointCoordcheck=i;
+        double3 p                = PointCoordset[i];
+        PointCoord p_neighbourPC = nneighbourSet->getPoints()[nneighbourSet->getPoints()[PointCoordcheck].nn];
+        double3 p_neighbour= double3(p_neighbourPC.coord[0], p_neighbourPC.coord[1], p_neighbourPC.coord[2]);
+        if (myfile.is_open()){
+            myfile <<"("<<p.coord[0]<<", "<<p.coord[1]<<", "<<p.coord[2]<<")";
+            myfile <<"  =>  ";
+            myfile <<"("<<p_neighbour.coord[0]<<", "<<p_neighbour.coord[1]<<", "<<p_neighbour.coord[2]<<")";
+            myfile <<"  =>  "<<distsqr(p, p_neighbour);
+            myfile <<"\n";
+        }
+    }
+    myfile.close();
+}
  
-void computeNearestNeighbour(std::string testType, size_t numPoints, char * outFile, int rounds) {
+void computeNearestNeighbour(std::string testType, size_t numPoints, std::string outFile, int rounds) {
     vector<double3> PointCoordset;
   
     srand(1);
@@ -118,22 +135,50 @@ void computeNearestNeighbour(std::string testType, size_t numPoints, char * outF
 
         computeNN();
         nextTimeN();
-        
+        writeToFile(outFile,PointCoordset);
         bool success = checkNN(PointCoordset);
-        if (outFile != NULL) {
-            FILE * outf = fopen(outFile, "w");
-            fprintf(outf, "%d\n", (success ? 1 : 0));
-            fclose(outf);
+        if(!success){
+            cout<<"ERROR!!!";
         }
      }
      cout << endl;    
 }
 
+void commandLineArgs(int argc,char *argv[], std::string &oFile, int &rounds, size_t &numPoints,std::string &testType){
+    int c=0;
+    while ((c = getopt (argc, argv, "o:r::n::t:")) != -1)
+    switch (c)
+    {   
+        case 'o':
+            oFile=optarg;
+            break;
+        case 'r':
+            rounds=atoi(optarg);
+            break;
+        case 'n':
+            numPoints=atoi(optarg);
+            break;
+        case 't':
+            testType = optarg;
+            break;
+        case '?':
+            if (optopt == 'c')
+                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+            else if (isprint (optopt))
+                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+            else
+                fprintf (stderr,"Unknown option character `\\x%x'.\n",optopt);
+        default:
+            return;
+    }
+}
+
 int main(int argc, char* argv[]) {
-    commandLine P(argc,argv," [-o <outFile>] [-r <rounds>] [-n <numPoints>] [-t <testType=random|shell|grid>]");
-    char* testType = P.getOptionValue("-t");
-    char* oFile = P.getOptionValue("-o");
-    int rounds = P.getOptionIntValue("-r",1);
-    size_t numPoints = (size_t) P.getOptionIntValue("-n", 1000);
+    std::string testType;
+    std::string oFile;
+    int rounds = 1;
+    size_t numPoints = 10;
+    commandLineArgs(argc,argv,oFile, rounds, numPoints, testType);
     computeNearestNeighbour(std::string(testType), numPoints, oFile, rounds);
+    return 1;
 }

@@ -1,14 +1,5 @@
-/*
- *  NNeighbour.h
- *  CallahanKosaraju
- *
- *  Created by Aapo Kyrola on 11/9/10.
- *  Copyright 2010 Carnegie Mellon University. All rights reserved.
- *
- */
-
-#ifndef __DEF_CKPOINTSET_
-#define __DEF_CKPOINTSET_
+#ifndef __NNEIGHBOUR_
+#define __NNEIGHBOUR_
 
 #include <cstdio>
 #include <iostream>
@@ -17,11 +8,11 @@
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
-
 #define DIMENSIONS 3
 #define BOXEDGES 8
 #define MAXPARALLELDEPTH 5
 #define _sqr(x) ((x)*(x))
+
 
 class TreeNode;
 struct PointCoord {
@@ -45,14 +36,14 @@ struct PointCoord {
     } 
 };
 
-struct box {
+struct Box {
     PointCoord edges[BOXEDGES];
     PointCoord center;
     double r;
-    box() {
+    Box() {
 
     }
-    box(double x, double xdim, double y, double ydim, double z, double zdim) {
+    Box(double x, double xdim, double y, double ydim, double z, double zdim) {
         int k =0;
         edges[k++] = PointCoord(x, y, z);
         edges[k++] = PointCoord(x+xdim, y, z);
@@ -66,7 +57,7 @@ struct box {
         center = PointCoord(x+xdim/2, y+ydim/2, z+zdim/2);
     }
   
-    box(PointCoord & pt) {
+    Box(PointCoord & pt) {
         r = 0;
         center = PointCoord(pt.coord[0], pt.coord[1], pt.coord[2]);
         for(int k=0; k<BOXEDGES; k++) edges[k] = center;
@@ -78,9 +69,9 @@ class TreeNode {
         TreeNode * left;
         TreeNode * right;
         TreeNode * parent;
-        box boundingbox;
+        Box boundingBox;
         int depth;
-        double lmax;
+        double lengthMax;
         double totalmass;
         PointCoord masscenter;
         std::list<TreeNode *> * interacts;
@@ -117,7 +108,7 @@ struct PointCoordset_part {
 
 class NNeighbour {
     public:
-  
+    
     NNeighbour(): s(2.01) {
         PointCoordidx = NULL;
         workarray = NULL;
@@ -157,13 +148,13 @@ class NNeighbour {
     }
   
     void recompute() {
-        boxes.clear();
-        buildTree();
+        Boxes.clear();
+        buildKDTree();
         buildWSR();
     }
   
-    std::vector<box> & getBoxes() {
-        return boxes;
+    std::vector<Box> & getBoxes() {
+        return Boxes;
     }
   
     std::vector< std::pair<PointCoord, PointCoord> > &  getPairs() {
@@ -173,15 +164,7 @@ class NNeighbour {
   
     void buildWSR() {
         pairs.clear();
-        cout<<"inorder =>\n";
-        inorder(root);
-
-        cout<<"\npreorder =>\n";
-        preorder(root);
-        cout<<"\n";
-        printPointNode();
         wsr(root);
-        // std::cout << "Pairs size: " << pairs.size() << " nodes: " << treetop << std::endl;
     }
   
   
@@ -225,17 +208,13 @@ class NNeighbour {
     }
 
     void compute_nn_naive() {
-        int psz = PointCoords.size();
+        int pointCoordSize = PointCoords.size();
         #ifdef CILK
-        cilk_for(int i=0; i<psz; i++) {
+        cilk_for(int i=0; i<pointCoordSize; i++) {
         #else
-        for(int i=0; i<psz; i++) {
+        for(int i=0; i<pointCoordSize; i++) {
         #endif
             PointCoords[i].nn = nearest_neighbor_naive(i); 
-            printPoint(PointCoords[i]);
-            cout<<" -> ";
-            printPoint(PointCoords[PointCoords[i].nn]);
-            cout<<endl;
         }
     }
     
@@ -258,11 +237,11 @@ class NNeighbour {
     }
     
     void compute_wsr_nn() {
-        int psz = PointCoords.size();
+        int pointCoordSize = PointCoords.size();
         #ifdef CILK
-            cilk_for(int pntidx=0; pntidx<psz; pntidx++){ 
+            cilk_for(int pntidx=0; pntidx<pointCoordSize; pntidx++){ 
         #else 
-            for(int pntidx=0; pntidx<psz; pntidx++){
+            for(int pntidx=0; pntidx<pointCoordSize; pntidx++){
         #endif
                 double minDistSqr = 1e30;
                 int minDistIdx = -1;
@@ -288,7 +267,7 @@ private:
     
     int * PointCoordidx;
     int * workarray;
-    std::vector<box> boxes;
+    std::vector<Box> Boxes;
     TreeNode * internal_nodes;
     TreeNode * leaves;
     TreeNode * root;
@@ -297,14 +276,14 @@ private:
 
     void printPointNode(){
         for(int i=0;i<PointCoords.size();++i){
-            cout<<"i: "<<i<<" "<<" Node: "<<PointCoords[i].node<<" => ";
+            // cout<<"i: "<<i<<" "<<" Node: "<<PointCoords[i].node<<" => ";
             printPoint(PointCoords[i]);
             cout<<"\n";
         }
     }
     
     // Building the tree (using the simpler method, so it is easier to parallize)
-    void buildTree() {
+    void buildKDTree() {
         int tsz = 0;
         PointCoordidx = (int*) realloc(PointCoordidx, PointCoords.size()*sizeof(int));
         workarray = (int *) realloc(workarray, PointCoords.size()*sizeof(int));
@@ -313,7 +292,7 @@ private:
         for(int i=0; i<PointCoords.size(); i++) {
                 PointCoordidx[i] = i;
         }
-        root = btree(PointCoordset_part(0, PointCoords.size()), NULL, 0);
+        root = kdTree(PointCoordset_part(0, PointCoords.size()), NULL, 0);
     }
     
     // Nodes are preallocated to avoid doing mallocs (as new()).
@@ -322,8 +301,8 @@ private:
         TreeNode * node = &leaves[ptidx];
         *node = TreeNode(NULL, NULL, parent, ptidx);
         PointCoords[ptidx].node = node;
-        node->boundingbox = box(PointCoords[ptidx]);
-        node->lmax = 0;
+        node->boundingBox = Box(PointCoords[ptidx]);
+        node->lengthMax = 0;
         if (parent == NULL) {
              node->depth = 0;
         } else {
@@ -339,9 +318,9 @@ private:
         *node = TreeNode(parent);
                 
          if (parent == NULL) {
-             node->depth = 0;
+            node->depth = 0;
          } else {
-             node->depth = parent->depth+1;
+            node->depth = parent->depth+1;
          }
             
         return node;
@@ -357,14 +336,14 @@ private:
         return std::pair<double, double>(dmin, dmax);
     }
     
-    box PointCoordpart_box(PointCoordset_part part) {
+    Box PointCoordpart_Box(PointCoordset_part part) {
         std::pair<double,double> xd = PointCoordpart_dim(part,0);
         std::pair<double,double> yd = PointCoordpart_dim(part,1);
         std::pair<double,double> zd = PointCoordpart_dim(part,2);
-        return box(xd.first,xd.second-xd.first, yd.first, yd.second-yd.first, zd.first, zd.second-zd.first); 
+        return Box(xd.first,xd.second-xd.first, yd.first, yd.second-yd.first, zd.first, zd.second-zd.first); 
     }
     
-    double lmax(box bb) {
+    double lengthMax(Box bb) {
         double mx = 0;
         for(int i=1; i<BOXEDGES; i++) {
             for(int d=0; d<DIMENSIONS; d++) {
@@ -389,7 +368,7 @@ private:
         return std::pair<int,double>(maxdimnum, maxdimmin + maxdim*0.5);
     }
     
-    TreeNode * btree(PointCoordset_part p, TreeNode * parent, int level) {
+    TreeNode * kdTree(PointCoordset_part p, TreeNode * parent, int level) {
         assert(p.length>=1);
         if (p.length == 1) {
             return leaf(parent, PointCoordidx[p.begin]);
@@ -415,40 +394,40 @@ private:
                 PointCoordidx[i] = workarray[i];
             }
             TreeNode * node = newnode(parent, p2start);
-            node->boundingbox = PointCoordpart_box(p);
-            node->lmax = lmax(node->boundingbox);
+            node->boundingBox = PointCoordpart_Box(p);
+            node->lengthMax = lengthMax(node->boundingBox);
     
             #ifdef CILK
                 TreeNode * leftn;
                 TreeNode * rightn;
                 if (level < MAXPARALLELDEPTH) {
-                        leftn = cilk_spawn btree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
-                        rightn =     btree(PointCoordset_part(p2start, c-p2start), node, level+1);
+                        leftn = cilk_spawn kdTree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
+                        rightn =     kdTree(PointCoordset_part(p2start, c-p2start), node, level+1);
                         cilk_sync;
                 } else {
-                        rightn = btree(PointCoordset_part(p2start, c-p2start), node, level+1);
-                        leftn = btree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
+                        rightn = kdTree(PointCoordset_part(p2start, c-p2start), node, level+1);
+                        leftn = kdTree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
                 }
                 node->left = leftn;
                 node->right = rightn;
             #else
-                node->left = btree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
-                node->right = btree(PointCoordset_part(p2start, c-p2start), node, level+1);
+                node->left = kdTree(PointCoordset_part(p.begin, p2start-p.begin), node, level+1);
+                node->right = kdTree(PointCoordset_part(p2start, c-p2start), node, level+1);
             #endif
             // For visualization:
-            //boxes.push_back(tree[newnodeid].boundingbox);
+            //Boxes.push_back(tree[newnodeid].boundingBox);
             return node;
         }
     }
     
-    bool wellSeparated(box & b1, box & b2) {
+    bool wellSeparated(Box & b1, Box & b2) {
         // Smallest radius of a ball that can contain aither rectangle
         double r = std::max(b1.r, b2.r);
         double d = sqrt(b1.center.rsqr(b2.center))-2*r;
         return (d>s*r);
     }
     
-    bool wellSeparated(PointCoord & p, box & b2, double s) {
+    bool wellSeparated(PointCoord & p, Box & b2, double s) {
         double r = b2.r;
         double d = sqrt(b2.center.rsqr(p))-2*r;
         return (d>s*r);
@@ -474,12 +453,11 @@ private:
     }
     
     void wsrPair(TreeNode * t1, TreeNode * t2) {
-        if (wellSeparated(t1->boundingbox, t2->boundingbox)) {
-            cout<<"Found\n";
+        if (wellSeparated(t1->boundingBox, t2->boundingBox)) {
             if (t1->left == NULL) t1->add_interaction(t2);
             if (t2->left == NULL) t2->add_interaction(t1);
-            //pairs.push_back(std::pair<PointCoord,PointCoord> (t1.boundingbox.center, t2.boundingbox.center));
-        } else if ((t1->lmax) > (t2->lmax)) {
+            //pairs.push_back(std::pair<PointCoord,PointCoord> (t1.boundingBox.center, t2.boundingBox.center));
+        } else if ((t1->lengthMax) > (t2->lengthMax)) {
             wsrPair(t1->left, t2);
             wsrPair(t1->right, t2);
         } else {
