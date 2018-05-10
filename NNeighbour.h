@@ -11,7 +11,7 @@
 #define DIMENSIONS 3
 #define BOXEDGES 8
 #define MAXPARALLELDEPTH 5
-#define _sqr(x) ((x)*(x))
+#define _SQUARE(x) ((x)*(x))
 
 
 class TreeNode;
@@ -30,9 +30,9 @@ struct PointCoord {
         coord[2] = z;    
         nn = (-1); 
     }
-    double rsqr(PointCoord &p) {
+    double square(PointCoord &p) {
         assert(DIMENSIONS == 3);
-        return _sqr(p.coord[0]-coord[0])+_sqr(p.coord[1]-coord[1])+_sqr(p.coord[2]-coord[2]);
+        return _SQUARE(p.coord[0]-coord[0])+_SQUARE(p.coord[1]-coord[1])+_SQUARE(p.coord[2]-coord[2]);
     } 
 };
 
@@ -53,7 +53,7 @@ struct Box {
         edges[k++] = PointCoord(x+xdim, y, z+zdim);
         edges[k++] = PointCoord(x+xdim, y+ydim, z+zdim);
         edges[k++] = PointCoord(x, y+ydim, z+zdim);
-        r = sqrt(_sqr(xdim*0.5)+_sqr(ydim*0.5)+_sqr(zdim*0.5));
+        r = sqrt(_SQUARE(xdim*0.5)+_SQUARE(ydim*0.5)+_SQUARE(zdim*0.5));
         center = PointCoord(x+xdim/2, y+ydim/2, z+zdim/2);
     }
   
@@ -174,7 +174,7 @@ class NNeighbour {
         int minDistIdx = -1;
         for(int i=PointCoords.size()-1; i>=0; i--) {
             if (i != pntidx) {
-                double r2 = p.rsqr(PointCoords[i]);
+                double r2 = p.square(PointCoords[i]);
                 if (r2 < minDistSqr) {
                     minDistSqr = r2;
                     minDistIdx = i;
@@ -218,16 +218,16 @@ class NNeighbour {
         }
     }
     
-    std::pair<int,double> mindist(PointCoord & p, TreeNode * node, int minDistIdx, double minDistSqr){ 
+    std::pair<int,double> minimumDistance(PointCoord & p, TreeNode * node, int minDistIdx, double minDistSqr){ 
         if (node->left == NULL) {
-            double r2 = p.rsqr(PointCoords[node->PointCoord_idx]);
+            double r2 = p.square(PointCoords[node->PointCoord_idx]);
             if (r2<minDistSqr) 
                 return std::pair<int,double>(node->PointCoord_idx, r2);
             else 
                 return std::pair<int,double>(minDistIdx, minDistSqr);
         } else {
-            std::pair<int,double> minleft = mindist(p, node->left, minDistIdx, minDistSqr);
-            return mindist(p, node->right, minleft.first, minleft.second);
+            std::pair<int,double> minleft = minimumDistance(p, node->left, minDistIdx, minDistSqr);
+            return minimumDistance(p, node->right, minleft.first, minleft.second);
         }
     }
     
@@ -250,7 +250,7 @@ class NNeighbour {
                 std::list<TreeNode *>::iterator iter;
                 //std::cout << "Interacts: " << pntidx << " " << interacts.size() << std::endl;
                 for(iter = interacts.begin(); iter != interacts.end(); iter++) {
-                    std::pair<int, double> mind = mindist(p, *iter, minDistIdx, minDistSqr);
+                    std::pair<int, double> mind = minimumDistance(p, *iter, minDistIdx, minDistSqr);
                     minDistIdx = mind.first;
                     minDistSqr = mind.second;
                     //std::cout << pntidx << " : " <<    minDistIdx << " : " << minDistSqr << std::endl;
@@ -423,13 +423,13 @@ private:
     bool wellSeparated(Box & b1, Box & b2) {
         // Smallest radius of a ball that can contain aither rectangle
         double r = std::max(b1.r, b2.r);
-        double d = sqrt(b1.center.rsqr(b2.center))-2*r;
+        double d = sqrt(b1.center.square(b2.center))-2*r;
         return (d>s*r);
     }
     
     bool wellSeparated(PointCoord & p, Box & b2, double s) {
         double r = b2.r;
-        double d = sqrt(b2.center.rsqr(p))-2*r;
+        double d = sqrt(b2.center.square(p))-2*r;
         return (d>s*r);
         
     }
