@@ -54,7 +54,7 @@ double3Coord getNearestPoint(int PointCoordidx) {
 bool checkNN(vector<double3Coord> & PointCoordset) {
     // Use max 0.5 secs for checking or max 1000 PointCoords
     int maxPointCoords = 1000;
-    double maxtime = 0.5;
+    double maxtime = 100000;
     timer ctimer;
     ctimer.start();
     srand(time(NULL));
