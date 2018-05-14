@@ -1,24 +1,8 @@
-include cilkMakeF
+CC=icc
+CFLAGS=-std=c++11	
 
-CODE = callahanKosaraju
-COMMON =  utils.h  gettime.h 
-COMMONB = nnTime.C   PointGenerator.h
+all:
+		$(CC) $(CFLAGS) -o  neighbor main.cpp
 
-all : $(CODE)
-	cd ../common; 	make -s nnCheck
-
-$(COMMON) :
-	ln -s ../../common/$@ .
-
-$(COMMONB) :
-	ln -s ../common/$@ .
-
-$(CODE): $(COMMON) $(COMMONB) CKPointSet.h CKPointSet.cpp utils.h
-	$(PCC) $(PCFLAGS) $(PLFLAGS) -include CKPointSet.cpp -o $(CODE) nnTime.C 
-
-clean :
-	rm -f $(CODE)
-
-cleansrc :
-	make -s clean
-	rm -f $(COMMON) $(COMMONB)
+clean:
+		rm -rf neighbor
